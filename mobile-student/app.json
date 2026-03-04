@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "mobile-student",
+    "slug": "mobile-student",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "userInterfaceStyle": "dark"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "navigationBar": {
+        "backgroundColor": "#000000",
+        "barStyle": "light-content"
+      },
+      "userInterfaceStyle": "dark"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

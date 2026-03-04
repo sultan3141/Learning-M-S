@@ -290,7 +290,7 @@ export const DashboardLayout = () => {
                     width: 100%;
                 }
 
-                @media (max-width: 1024px) {
+                @media (max-width: 900px) {
                     .sidebar { 
                         width: 64px; 
                     }

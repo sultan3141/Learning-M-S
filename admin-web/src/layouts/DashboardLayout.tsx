@@ -1,18 +1,35 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Users, Video, LogOut, GraduationCap, Layout, Menu, X } from 'lucide-react';
+import { Users, Video, LogOut, GraduationCap, Layout, Menu, X, LayoutDashboard, BookOpen } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 
-export const DashboardLayout = () => {
+interface DashboardLayoutProps {
+    userRole: 'ADMIN' | 'TEACHER';
+}
+
+export const DashboardLayout = ({ userRole }: DashboardLayoutProps) => {
     const location = useLocation();
-    const logout = useAuthStore((state) => state.logout);
+    const { logout, user } = useAuthStore();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const menuItems = [
-        { path: '/students', icon: Users, label: 'Students' },
-        { path: '/recordings', icon: Video, label: 'Upload Videos' },
-        { path: '/manage-videos', icon: Layout, label: 'Manage Videos' },
+    const adminMenuItems = [
+        { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { path: '/admin/teachers', icon: GraduationCap, label: 'Teachers' },
+        { path: '/admin/students', icon: Users, label: 'Students' },
+        { path: '/admin/videos', icon: Video, label: 'Videos' },
+        { path: '/admin/recordings', icon: BookOpen, label: 'Recordings' },
     ];
+
+    const teacherMenuItems = [
+        { path: '/teacher/students', icon: Users, label: 'Students' },
+        { path: '/teacher/recordings', icon: Video, label: 'Upload Videos' },
+        { path: '/teacher/videos', icon: Layout, label: 'Manage Videos' },
+    ];
+
+    const menuItems = userRole === 'ADMIN' ? adminMenuItems : teacherMenuItems;
+    const portalName = userRole === 'ADMIN' ? 'AdminHub' : 'TeacherHub';
+    const accountName = userRole === 'ADMIN' ? 'Admin Account' : 'Teacher Account';
+    const avatarLetter = userRole === 'ADMIN' ? 'A' : 'T';
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -36,7 +53,7 @@ export const DashboardLayout = () => {
                     <div className="logo-icon">
                         <GraduationCap size={20} strokeWidth={2.5} />
                     </div>
-                    <span className="logo-text">TeacherHub</span>
+                    <span className="logo-text">{portalName}</span>
                 </div>
 
                 <nav className="sidebar-nav">
@@ -84,10 +101,10 @@ export const DashboardLayout = () => {
                     <div className="header-right">
                         <div className="user-info">
                             <div className="user-details">
-                                <p className="user-name">Teacher Account</p>
-                                <p className="user-role">Administrator</p>
+                                <p className="user-name">{accountName}</p>
+                                <p className="user-role">{user?.email || 'User'}</p>
                             </div>
-                            <div className="user-avatar">T</div>
+                            <div className="user-avatar">{avatarLetter}</div>
                         </div>
                     </div>
                 </header>

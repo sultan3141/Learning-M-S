@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axiosInstance from '../../lib/axios';
-import { Search, Edit2, Trash2, Play, Filter, X } from 'lucide-react';
+import { useUserRole, isAdmin } from '../../lib/roleHelper';
+import { Search, Edit2, Trash2, Play, X } from 'lucide-react';
 
 export const ManageVideosScreen = () => {
-    const [courses, setCourses] = useState<any[]>([]);
-    const [selectedCourse, setSelectedCourse] = useState<string>('');
     const [recordings, setRecordings] = useState<any[]>([]);
     const [filteredRecordings, setFilteredRecordings] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [editingRecording, setEditingRecording] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const userRole = useUserRole();
 
     const [formData, setFormData] = useState({
         title: '',
@@ -19,17 +19,8 @@ export const ManageVideosScreen = () => {
     });
 
     useEffect(() => {
-        fetchCourses();
+        fetchRecordings();
     }, []);
-
-    useEffect(() => {
-        if (selectedCourse) {
-            fetchRecordings();
-        } else {
-            setRecordings([]);
-            setFilteredRecordings([]);
-        }
-    }, [selectedCourse]);
 
     useEffect(() => {
         if (searchTerm) {
@@ -43,19 +34,11 @@ export const ManageVideosScreen = () => {
         }
     }, [searchTerm, recordings]);
 
-    const fetchCourses = async () => {
-        try {
-            const response = await axiosInstance.get('/courses/teacher/me');
-            setCourses(response.data || []);
-        } catch (err) {
-            console.error('Failed to fetch courses:', err);
-        }
-    };
-
     const fetchRecordings = async () => {
         setLoading(true);
         try {
-            const response = await axiosInstance.get(`/recordings?courseId=${selectedCourse}`);
+            const endpoint = isAdmin(userRole) ? '/admin/recordings' : '/recordings';
+            const response = await axiosInstance.get(endpoint);
             setRecordings(response.data || []);
             setFilteredRecordings(response.data || []);
         } catch (err) {
@@ -94,7 +77,8 @@ export const ManageVideosScreen = () => {
         if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) return;
 
         try {
-            await axiosInstance.delete(`/recordings/${recordingId}`);
+            const endpoint = isAdmin(userRole) ? `/admin/recordings/${recordingId}` : `/recordings/${recordingId}`;
+            await axiosInstance.delete(endpoint);
             fetchRecordings();
         } catch (err) {
             alert('Failed to delete recording');
@@ -111,47 +95,23 @@ export const ManageVideosScreen = () => {
         <div className="manage-videos-page">
             {/* Header / Filter Toolbar */}
             <div className="toolbar card animate-fade-in">
-                <div className="filter-group">
-                    <Filter size={18} className="text-muted" />
-                    <select
-                        className="course-select"
-                        value={selectedCourse}
-                        onChange={(e) => setSelectedCourse(e.target.value)}
-                    >
-                        <option value="">Select a course to manage videos</option>
-                        {courses.map((c) => (
-                            <option key={c.id} value={c.id}>{c.title}</option>
-                        ))}
-                    </select>
+                <div className="search-wrapper">
+                    <Search size={18} className="text-muted" />
+                    <input
+                        type="text"
+                        placeholder="Search videos..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
                 </div>
-
-                {selectedCourse && (
-                    <div className="search-wrapper">
-                        <Search size={18} className="text-muted" />
-                        <input
-                            type="text"
-                            placeholder="Search videos..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="search-input"
-                        />
-                    </div>
-                )}
             </div>
 
             {/* Videos List / Grid */}
             {loading ? (
                 <div className="loading-state">
                     <div className="spinner"></div>
-                    <p>Loading course videos...</p>
-                </div>
-            ) : !selectedCourse ? (
-                <div className="empty-state animate-fade-in">
-                    <div className="empty-icon-wrapper">
-                        <Play size={48} />
-                    </div>
-                    <h3>Select a Course</h3>
-                    <p>Please choose a course from the toolbar to manage its published recordings.</p>
+                    <p>Loading videos...</p>
                 </div>
             ) : filteredRecordings.length === 0 ? (
                 <div className="empty-state animate-fade-in">
@@ -159,7 +119,7 @@ export const ManageVideosScreen = () => {
                         <Play size={48} />
                     </div>
                     <h3>No Videos Found</h3>
-                    <p>{searchTerm ? 'No recordings match your searching criteria.' : 'This course has no published recordings yet.'}</p>
+                    <p>{searchTerm ? 'No recordings match your search criteria.' : 'No recordings available yet.'}</p>
                 </div>
             ) : (
                 <div className="video-grid">
@@ -183,6 +143,11 @@ export const ManageVideosScreen = () => {
                                 </p>
                                 {recording.description && (
                                     <p className="video-desc">{recording.description}</p>
+                                )}
+                                {recording.subject?.course && (
+                                    <p className="video-course">
+                                        Course: {recording.subject.course.title}
+                                    </p>
                                 )}
                             </div>
 
@@ -427,6 +392,13 @@ export const ManageVideosScreen = () => {
                     WebkitLineClamp: 2;
                     WebkitBoxOrient: vertical;
                     overflow: hidden;
+                }
+
+                .video-course {
+                    font-size: 12px;
+                    color: var(--primary);
+                    font-weight: 500;
+                    margin-top: 8px;
                 }
 
                 .video-footer {

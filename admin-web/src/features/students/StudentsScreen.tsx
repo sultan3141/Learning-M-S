@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axiosInstance from '../../lib/axios';
-
+import { useUserRole, isAdmin } from '../../lib/roleHelper';
 import { Search, UserPlus, X, Trash2, Copy, Check, Phone, HelpCircle, User as UserIcon, Edit2, Key } from 'lucide-react';
 
 
@@ -14,6 +14,7 @@ export const StudentsScreen = () => {
     const [generatedCredentials, setGeneratedCredentials] = useState<any | null>(null);
     const [copied, setCopied] = useState(false);
     const [editingStudent, setEditingStudent] = useState<any | null>(null);
+    const userRole = useUserRole();
 
 
     const [formData, setFormData] = useState({
@@ -29,7 +30,8 @@ export const StudentsScreen = () => {
 
     const fetchStudents = async () => {
         try {
-            const response = await axiosInstance.get('/courses/teacher/students');
+            const endpoint = isAdmin(userRole) ? '/admin/students' : '/courses/teacher/students';
+            const response = await axiosInstance.get(endpoint);
             setStudents(response.data);
         } catch (err) {
             console.error('Failed to fetch students:', err);
@@ -44,7 +46,7 @@ export const StudentsScreen = () => {
         try {
             if (editingStudent) {
                 // Update existing student
-                await axiosInstance.patch(`/auth/teacher/student/${editingStudent.studentId}`, {
+                await axiosInstance.patch(`/auth/teacher/student/${editingStudent.id}`, {
                     fullName: formData.fullName,
                     age: parseInt(formData.age),
                     phoneNumber: formData.phoneNumber,
@@ -178,98 +180,108 @@ export const StudentsScreen = () => {
                             </thead>
                             <tbody>
                                 {filteredStudents.length > 0 ? (
-                                    filteredStudents.map((student) => (
-                                        <tr key={student.studentId}>
-                                            <td>
-                                                <div className="user-profile-cell">
-                                                    <div className="user-avatar-small">
-                                                        {student.fullName.charAt(0)}
-                                                    </div>
-                                                    <div className="user-meta">
-                                                        <p className="user-fullname">{student.fullName}</p>
-                                                        <p className="user-email">{student.email}</p>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                                                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                                                                User:
-                                                            </span>
-                                                            <code style={{
-                                                                fontSize: '10px',
-                                                                padding: '1px 4px',
-                                                                backgroundColor: 'var(--bg-main)',
-                                                                borderRadius: '3px',
-                                                                color: 'var(--text-secondary)',
-                                                                fontWeight: '500'
-                                                            }}>
-                                                                {student.email}
-                                                            </code>
+                                    filteredStudents.map((student) => {
+                                        // Handle both admin and teacher data structures
+                                        const studentId = student.id || student.studentId;
+                                        const courses = student.enrollments || student.courses || [];
+                                        
+                                        return (
+                                            <tr key={studentId}>
+                                                <td>
+                                                    <div className="user-profile-cell">
+                                                        <div className="user-avatar-small">
+                                                            {student.fullName.charAt(0)}
+                                                        </div>
+                                                        <div className="user-meta">
+                                                            <p className="user-fullname">{student.fullName}</p>
+                                                            <p className="user-email">{student.email}</p>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                                                                    User:
+                                                                </span>
+                                                                <code style={{
+                                                                    fontSize: '10px',
+                                                                    padding: '1px 4px',
+                                                                    backgroundColor: 'var(--bg-main)',
+                                                                    borderRadius: '3px',
+                                                                    color: 'var(--text-secondary)',
+                                                                    fontWeight: '500'
+                                                                }}>
+                                                                    {student.email}
+                                                                </code>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="contact-info">
-                                                    {student.age && (
-                                                        <div className="info-item">
-                                                            <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Age:</span>
-                                                            <span>{student.age}</span>
-                                                        </div>
-                                                    )}
-                                                    {student.phoneNumber && (
-                                                        <div className="info-item">
-                                                            <Phone size={14} className="text-muted" />
-                                                            <span>{student.phoneNumber}</span>
-                                                        </div>
-                                                    )}
-                                                    {student.interest && (
-                                                        <div className="info-item">
-                                                            <HelpCircle size={14} className="text-muted" />
-                                                            <span className="truncate">{student.interest}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {student.courses && student.courses.length > 0 ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        {student.courses.map((course: any) => (
-                                                            <span key={course.courseId} className="badge">
-                                                                {course.courseTitle}
-                                                            </span>
-                                                        ))}
+                                                </td>
+                                                <td>
+                                                    <div className="contact-info">
+                                                        {student.age && (
+                                                            <div className="info-item">
+                                                                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Age:</span>
+                                                                <span>{student.age}</span>
+                                                            </div>
+                                                        )}
+                                                        {student.phoneNumber && (
+                                                            <div className="info-item">
+                                                                <Phone size={14} className="text-muted" />
+                                                                <span>{student.phoneNumber}</span>
+                                                            </div>
+                                                        )}
+                                                        {student.interest && (
+                                                            <div className="info-item">
+                                                                <HelpCircle size={14} className="text-muted" />
+                                                                <span className="truncate">{student.interest}</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                ) : (
-                                                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                                                        Not enrolled
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="text-right">
-                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                                    <button
-                                                        onClick={() => handleResetPassword(student.studentId, student.fullName)}
-                                                        className="btn-ghost btn-icon"
-                                                        title="Reset password"
-                                                    >
-                                                        <Key size={16} style={{ color: 'var(--warning)' }} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEdit(student)}
-                                                        className="btn-ghost btn-icon"
-                                                        title="Edit student"
-                                                    >
-                                                        <Edit2 size={16} style={{ color: 'var(--primary)' }} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(student.studentId, student.fullName)}
-                                                        className="btn-ghost btn-icon"
-                                                        title="Delete student"
-                                                    >
-                                                        <Trash2 size={16} className="text-error" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                                <td>
+                                                    {courses.length > 0 ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                            {courses.map((item: any, idx: number) => {
+                                                                const courseTitle = item.course?.title || item.courseTitle;
+                                                                const courseId = item.course?.id || item.courseId || idx;
+                                                                return (
+                                                                    <span key={courseId} className="badge">
+                                                                        {courseTitle}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                                                            Not enrolled
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="text-right">
+                                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                            onClick={() => handleResetPassword(studentId, student.fullName)}
+                                                            className="btn-ghost btn-icon"
+                                                            title="Reset password"
+                                                        >
+                                                            <Key size={16} style={{ color: 'var(--warning)' }} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleEdit(student)}
+                                                            className="btn-ghost btn-icon"
+                                                            title="Edit student"
+                                                        >
+                                                            <Edit2 size={16} style={{ color: 'var(--primary)' }} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(studentId, student.fullName)}
+                                                            className="btn-ghost btn-icon"
+                                                            title="Delete student"
+                                                        >
+                                                            <Trash2 size={16} className="text-error" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan={4} className="empty-row">

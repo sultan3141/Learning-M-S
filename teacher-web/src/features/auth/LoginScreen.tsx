@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import axiosInstance from '../../lib/axios';
+
+// Helper function to decode JWT and extract role
+const decodeToken = (token: string): { role: string; userId: string } | null => {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            atob(base64)
+                .split('')
+                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        const payload = JSON.parse(jsonPayload);
+        return { role: payload.role, userId: payload.sub };
+    } catch (error) {
+        console.error('Failed to decode token:', error);
+        return null;
+    }
+};
 
 export const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -8,6 +28,7 @@ export const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const login = useAuthStore((state) => state.login);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +42,29 @@ export const LoginScreen = () => {
             });
 
             const token = response.data.accessToken;
-            login(token, { email });
+            const decoded = decodeToken(token);
+
+            if (!decoded) {
+                setError('Invalid token received. Please try again.');
+                return;
+            }
+
+            // Accept both ADMIN and TEACHER roles
+            if (decoded.role !== 'TEACHER' && decoded.role !== 'ADMIN') {
+                setError('Access denied. This portal is for staff only.');
+                return;
+            }
+
+            // Store user info with role
+            login(token, { email, role: decoded.role, userId: decoded.userId });
+
+            // Redirect based on role
+            if (decoded.role === 'ADMIN') {
+                // Admin users — redirect to the unified portal with token
+                window.location.href = `http://localhost:5175/admin/dashboard?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+            } else {
+                navigate('/students');
+            }
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
@@ -34,7 +77,7 @@ export const LoginScreen = () => {
             <div className="login-container animate-fade-in">
                 <div className="login-card card glass">
                     <div className="login-header">
-                        <h1 className="login-title">Teacher Portal</h1>
+                        <h1 className="login-title">Staff Portal</h1>
                         <p className="login-subtitle">Sign in to manage your students and content</p>
                     </div>
 
@@ -47,7 +90,7 @@ export const LoginScreen = () => {
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="teacher@example.com"
+                                placeholder="staff@example.com"
                                 required
                             />
                         </div>

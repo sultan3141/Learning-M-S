@@ -19,7 +19,7 @@ export const useAuthStore = create<AuthState>()(
             logout: () => set({ token: null, user: null, isAuthenticated: false }),
         }),
         {
-            name: 'teacher-auth-storage',
+            name: 'admin-auth-storage',
         }
     )
 );

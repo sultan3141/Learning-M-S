@@ -7,16 +7,23 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#FFFFFF"
     },
     "ios": {
       "supportsTablet": true,
-      "userInterfaceStyle": "dark"
+      "userInterfaceStyle": "dark",
+      "bundleIdentifier": "com.school.mobilestudent",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to your camera for video calls",
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone for audio calls"
+      }
     },
     "android": {
+      "package": "com.school.mobilestudent",
       "adaptiveIcon": {
         "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -28,10 +35,23 @@
         "backgroundColor": "#000000",
         "barStyle": "light-content"
       },
-      "userInterfaceStyle": "dark"
+      "userInterfaceStyle": "dark",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "@config-plugins/react-native-webrtc",
+      "expo-media-library"
+    ]
   }
 }

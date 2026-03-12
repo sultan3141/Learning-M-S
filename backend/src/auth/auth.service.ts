@@ -7,6 +7,7 @@ import { UserRole } from '@prisma/client';
 interface JwtPayload {
   sub: string;
   role: UserRole;
+  fullName: string;
 }
 
 @Injectable()
@@ -30,7 +31,7 @@ export class AuthService {
         role: 'STUDENT',
       },
     });
-    return this.buildTokens(user.id, user.role);
+    return this.buildTokens(user.id, user.role, user.fullName);
   }
 
   async registerTeacher(
@@ -52,7 +53,7 @@ export class AuthService {
         isTeacherApproved: false,
       },
     });
-    return this.buildTokens(user.id, user.role);
+    return this.buildTokens(user.id, user.role, user.fullName);
   }
 
   async registerByTeacher(
@@ -198,16 +199,23 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.validateUser(email, password);
-    return this.buildTokens(user.id, user.role);
+    return this.buildTokens(user.id, user.role, user.fullName);
   }
 
-  private async buildTokens(userId: string, role: UserRole) {
-    const payload: JwtPayload = { sub: userId, role };
+  private async buildTokens(userId: string, role: UserRole, fullName: string) {
+    const payload: JwtPayload = { sub: userId, role, fullName };
     const accessToken = await this.jwt.signAsync(payload, {
       secret: process.env.JWT_ACCESS_SECRET,
       expiresIn: Number(process.env.JWT_ACCESS_TTL_SECONDS || 900),
     });
-    return { accessToken };
+    return {
+      accessToken,
+      user: {
+        id: userId,
+        role,
+        fullName
+      }
+    };
   }
 }
 

@@ -329,9 +329,6 @@ export const DashboardLayout = () => {
                         font-size: 15px;
                     }
                 }
-                        font-size: 16px;
-                    }
-                }
 
                 @media (max-width: 768px) {
                     .sidebar {

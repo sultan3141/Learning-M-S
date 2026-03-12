@@ -60,8 +60,7 @@ export const LoginScreen = () => {
 
             // Redirect based on role
             if (decoded.role === 'ADMIN') {
-                // Admin users — redirect to the unified portal with token
-                window.location.href = `http://localhost:5175/admin/dashboard?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
+                navigate('/admin/dashboard');
             } else {
                 navigate('/students');
             }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -108,6 +108,115 @@ export class AdminService {
     });
 
     return { message: 'Teacher deleted successfully' };
+  }
+
+  async registerTeacher(email: string, password: string, fullName: string) {
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new ForbiddenException('Email already in use');
+    }
+
+    const argon2 = require('argon2');
+    const passwordHash = await argon2.hash(password);
+
+    const teacher = await this.prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        fullName,
+        role: 'TEACHER',
+        isTeacherApproved: true, // Admin-created teachers are auto-approved
+      },
+    });
+
+    return {
+      id: teacher.id,
+      email: teacher.email,
+      fullName: teacher.fullName,
+      isTeacherApproved: teacher.isTeacherApproved,
+    };
+  }
+
+  async getTeacherStudents(teacherId: string) {
+    const teacher = await this.prisma.user.findUnique({
+      where: { id: teacherId, role: 'TEACHER' },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Get all students enrolled in this teacher's courses
+    const courses = await this.prisma.course.findMany({
+      where: { teacherId },
+      include: {
+        enrollments: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                email: true,
+                fullName: true,
+                age: true,
+                phoneNumber: true,
+                interest: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Flatten and deduplicate students
+    const studentsMap = new Map();
+    courses.forEach((course) => {
+      course.enrollments.forEach((enrollment) => {
+        if (!studentsMap.has(enrollment.student.id)) {
+          studentsMap.set(enrollment.student.id, {
+            ...enrollment.student,
+            courses: [],
+          });
+        }
+        studentsMap.get(enrollment.student.id).courses.push({
+          id: course.id,
+          title: course.title,
+        });
+      });
+    });
+
+    return Array.from(studentsMap.values());
+  }
+
+  async resetTeacherPassword(teacherId: string) {
+    const teacher = await this.prisma.user.findUnique({
+      where: { id: teacherId, role: 'TEACHER' },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher not found');
+    }
+
+    // Generate a random 8-character password
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let newPassword = '';
+    for (let i = 0; i < 8; i++) {
+      newPassword += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+
+    const argon2 = require('argon2');
+    const passwordHash = await argon2.hash(newPassword);
+
+    await this.prisma.user.update({
+      where: { id: teacherId },
+      data: { passwordHash },
+    });
+
+    return {
+      email: teacher.email,
+      fullName: teacher.fullName,
+      newPassword: newPassword,
+    };
   }
 
   async listStudents() {

@@ -43,6 +43,27 @@ export class AdminController {
     return this.admin.listTeachers();
   }
 
+  @Post('teachers')
+  registerTeacher(
+    @Req() req: AuthedRequest,
+    @Body() body: { email: string; password: string; fullName: string },
+  ) {
+    this.checkAdmin(req.user.role);
+    return this.admin.registerTeacher(body.email, body.password, body.fullName);
+  }
+
+  @Get('teachers/:id/students')
+  getTeacherStudents(@Req() req: AuthedRequest, @Param('id') id: string) {
+    this.checkAdmin(req.user.role);
+    return this.admin.getTeacherStudents(id);
+  }
+
+  @Patch('teachers/:id/reset-password')
+  resetTeacherPassword(@Req() req: AuthedRequest, @Param('id') id: string) {
+    this.checkAdmin(req.user.role);
+    return this.admin.resetTeacherPassword(id);
+  }
+
   @Patch('teachers/:id/approve')
   approveTeacher(@Req() req: AuthedRequest, @Param('id') id: string) {
     this.checkAdmin(req.user.role);

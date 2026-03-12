@@ -1,9 +1,8 @@
-import React from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export const TokenDebug = () => {
     const token = useAuthStore((state) => state.token);
-    
+
     if (!token) {
         return <div>No token found</div>;
     }

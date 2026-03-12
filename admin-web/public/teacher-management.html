@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Management - v2.0</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .section { margin-bottom: 40px; }
+        .btn { padding: 10px 20px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn:hover { background: #4338CA; }
+        .btn-secondary { background: #6B7280; }
+        .btn-secondary:hover { background: #4B5563; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; color: #374151; }
+        input { width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px; }
+        input:focus { outline: none; border-color: #4F46E5; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #E5E7EB; }
+        th { background: #F9FAFB; font-weight: 600; color: #374151; }
+        tr:hover { background: #F9FAFB; }
+        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-success { background: #D1FAE5; color: #065F46; }
+        .badge-warning { background: #FEF3C7; color: #92400E; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .close { font-size: 24px; cursor: pointer; color: #6B7280; }
+        .close:hover { color: #374151; }
+        .btn-group { display: flex; gap: 10px; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-success { background: #10B981; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #EF4444; }
+        .btn-danger:hover { background: #DC2626; }
+        .loading { text-align: center; padding: 40px; color: #6B7280; }
+        .error { background: #FEE2E2; color: #991B1B; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+        .success { background: #D1FAE5; color: #065F46; padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+        .student-card { border: 1px solid #E5E7EB; padding: 15px; border-radius: 6px; margin-bottom: 10px; }
+        .student-card:hover { background: #F9FAFB; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teacher Management</h1>
+        <p class="subtitle">Admin Portal - Manage teachers and view their students</p>
+
+        <div id="loginSection" class="section">
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" value="admin@school.com" placeholder="admin@school.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" value="Admin@123" placeholder="Password">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+        </div>
+
+        <div id="mainSection" style="display: none;">
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Teachers</h2>
+                    <button class="btn" onclick="showRegisterModal()">+ Register Teacher</button>
+                </div>
+                <div id="teachersTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Teacher Modal -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Register New Teacher</h2>
+                <span class="close" onclick="closeRegisterModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="newTeacherName" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="newTeacherEmail" placeholder="newteacher@school.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="newTeacherPassword" placeholder="Minimum 6 characters">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeRegisterModal()">Cancel</button>
+                <button class="btn" onclick="registerTeacher()">Register Teacher</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Students Modal -->
+    <div id="studentsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="studentsModalTitle">Teacher's Students</h2>
+                    <p id="studentsModalSubtitle" style="color: #6B7280; font-size: 14px;"></p>
+                </div>
+                <span class="close" onclick="closeStudentsModal()">&times;</span>
+            </div>
+            <div id="studentsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:4000';
+        let token = '';
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (!response.ok) throw new Error('Login failed');
+
+                const data = await response.json();
+                token = data.accessToken;
+
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainSection').style.display = 'block';
+
+                loadTeachers();
+            } catch (error) {
+                alert('Login failed. Please check your credentials.');
+            }
+        }
+
+        async function loadTeachers() {
+            const container = document.getElementById('teachersTable');
+            container.innerHTML = '<div class="loading">Loading teachers...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/admin/teachers`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const teachers = await response.json();
+
+                if (teachers.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #6B7280; padding: 40px;">No teachers found</p>';
+                    return;
+                }
+
+                let html = '<table><thead><tr><th>Teacher</th><th>Status</th><th>Courses</th><th>Actions</th></tr></thead><tbody>';
+
+                teachers.forEach(teacher => {
+                    const statusBadge = teacher.isTeacherApproved 
+                        ? '<span class="badge badge-success">Approved</span>'
+                        : '<span class="badge badge-warning">Pending</span>';
+
+                    html += `
+                        <tr>
+                            <td>
+                                <div><strong>${teacher.fullName}</strong></div>
+                                <div style="color: #6B7280; font-size: 13px;">${teacher.email}</div>
+                            </td>
+                            <td>${statusBadge}</td>
+                            <td>${teacher.coursesCount || 0}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm" onclick="viewStudents('${teacher.id}', '${teacher.fullName}', '${teacher.email}')">View Students</button>
+                                    <button class="btn btn-sm" style="background: #8B5CF6;" onclick="resetPassword('${teacher.id}', '${teacher.fullName}')">Reset Password</button>
+                                    ${!teacher.isTeacherApproved 
+                                        ? `<button class="btn btn-sm btn-success" onclick="approveTeacher('${teacher.id}', '${teacher.fullName}')">Approve</button>`
+                                        : `<button class="btn btn-sm btn-secondary" onclick="suspendTeacher('${teacher.id}', '${teacher.fullName}')">Suspend</button>`
+                                    }
+                                    <button class="btn btn-sm btn-danger" onclick="deleteTeacher('${teacher.id}', '${teacher.fullName}')">Delete</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<div class="error">Failed to load teachers</div>';
+            }
+        }
+
+        function showRegisterModal() {
+            document.getElementById('registerModal').classList.add('active');
+        }
+
+        function closeRegisterModal() {
+            document.getElementById('registerModal').classList.remove('active');
+            document.getElementById('newTeacherName').value = '';
+            document.getElementById('newTeacherEmail').value = '';
+            document.getElementById('newTeacherPassword').value = '';
+        }
+
+        async function registerTeacher() {
+            const fullName = document.getElementById('newTeacherName').value;
+            const email = document.getElementById('newTeacherEmail').value;
+            const password = document.getElementById('newTeacherPassword').value;
+
+            if (!fullName || !email || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/admin/teachers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ fullName, email, password })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Registration failed');
+                }
+
+                alert('Teacher registered successfully!');
+                closeRegisterModal();
+                loadTeachers();
+            } catch (error) {
+                alert('Failed to register teacher: ' + error.message + '\n\nPlease use a different email address.');
+            }
+        }
+
+        async function viewStudents(teacherId, teacherName, teacherEmail) {
+            document.getElementById('studentsModalTitle').textContent = `${teacherName}'s Students`;
+            document.getElementById('studentsModalSubtitle').textContent = teacherEmail;
+            document.getElementById('studentsModal').classList.add('active');
+
+            const container = document.getElementById('studentsContent');
+            container.innerHTML = '<div class="loading">Loading students...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/admin/teachers/${teacherId}/students`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const students = await response.json();
+
+                if (students.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #6B7280; padding: 40px;">No students enrolled yet</p>';
+                    return;
+                }
+
+                let html = '';
+                students.forEach(student => {
+                    html += `
+                        <div class="student-card">
+                            <div><strong>${student.fullName}</strong></div>
+                            <div style="color: #6B7280; font-size: 13px;">${student.email}</div>
+                            ${student.phoneNumber ? `<div style="color: #6B7280; font-size: 13px;">📱 ${student.phoneNumber}</div>` : ''}
+                            ${student.interest ? `<div style="color: #6B7280; font-size: 13px;">💡 ${student.interest}</div>` : ''}
+                            <div style="margin-top: 8px;">
+                                <strong style="font-size: 12px; color: #6B7280;">Enrolled in:</strong>
+                                ${student.courses.map(c => `<span class="badge badge-success" style="margin-left: 5px;">${c.title}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = '<div class="error">Failed to load students</div>';
+            }
+        }
+
+        function closeStudentsModal() {
+            document.getElementById('studentsModal').classList.remove('active');
+        }
+
+        async function approveTeacher(teacherId, teacherName) {
+            if (!confirm(`Approve ${teacherName} as a teacher?`)) return;
+
+            try {
+                await fetch(`${API_URL}/admin/teachers/${teacherId}/approve`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                alert('Teacher approved successfully');
+                loadTeachers();
+            } catch (error) {
+                alert('Failed to approve teacher');
+            }
+        }
+
+        async function suspendTeacher(teacherId, teacherName) {
+            if (!confirm(`Suspend ${teacherName}?`)) return;
+
+            try {
+                await fetch(`${API_URL}/admin/teachers/${teacherId}/suspend`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                alert('Teacher suspended successfully');
+                loadTeachers();
+            } catch (error) {
+                alert('Failed to suspend teacher');
+            }
+        }
+
+        async function deleteTeacher(teacherId, teacherName) {
+            if (!confirm(`Delete ${teacherName}? This cannot be undone.`)) return;
+
+            try {
+                await fetch(`${API_URL}/admin/teachers/${teacherId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                alert('Teacher deleted successfully');
+                loadTeachers();
+            } catch (error) {
+                alert('Failed to delete teacher');
+            }
+        }
+
+        async function resetPassword(teacherId, teacherName) {
+            if (!confirm(`Reset password for ${teacherName}? A new random password will be generated.`)) return;
+
+            try {
+                const response = await fetch(`${API_URL}/admin/teachers/${teacherId}/reset-password`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to reset password');
+
+                const data = await response.json();
+                
+                // Show the new password in an alert
+                alert(`Password reset successfully!\n\nTeacher: ${data.fullName}\nEmail: ${data.email}\nNew Password: ${data.newPassword}\n\nPlease save this password and share it with the teacher.`);
+                
+            } catch (error) {
+                alert('Failed to reset password');
+            }
+        }
+    </script>
+</body>
+</html>

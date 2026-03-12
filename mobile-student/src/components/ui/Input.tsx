@@ -5,21 +5,22 @@ import { useThemeStore } from '../../store/useThemeStore';
 import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
 
 interface InputProps extends TextInputProps {
-    label: string;
+    label?: string;
     error?: string;
     isPassword?: boolean;
     leftIcon?: React.ReactNode;
+    containerStyle?: any;
 }
 
-export const Input = ({ label, error, style, isPassword, leftIcon, ...props }: InputProps) => {
+export const Input = ({ label, error, style, isPassword, leftIcon, containerStyle, ...props }: InputProps) => {
     const { theme } = useThemeStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     return (
-        <View style={styles.container}>
-            <Text style={[styles.label, { color: COLORS.text.primary }]}>{label}</Text>
+        <View style={[styles.container, containerStyle]}>
+            {label && <Text style={[styles.label, { color: COLORS.text.primary }]}>{label}</Text>}
             <View
                 style={[
                     styles.inputContainer,

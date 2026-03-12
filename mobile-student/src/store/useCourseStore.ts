@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:4000';
+import { api } from '../config/api';
 
 export interface Lesson {
     id: string;
@@ -32,6 +30,7 @@ interface CourseState {
     loading: boolean;
     fetchEnrolledCourses: (token: string) => Promise<void>;
     getCourseDetails: (token: string, courseId: string) => Promise<any>;
+    getCourseById: (courseId: string) => Course | undefined;
 }
 
 export const useCourseStore = create<CourseState>((set, get) => ({
@@ -40,19 +39,20 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     fetchEnrolledCourses: async (token) => {
         set({ loading: true });
         try {
-            const res = await axios.get(`${API_BASE_URL}/courses/enrolled`, {
+            const res = await api.get('/courses/me/enrolled', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             set({ enrolledCourses: res.data });
         } catch (err) {
             console.error('Failed to fetch enrolled courses:', err);
+            set({ enrolledCourses: [] }); // Set empty array on error
         } finally {
             set({ loading: false });
         }
     },
     getCourseDetails: async (token, courseId) => {
         try {
-            const res = await axios.get(`${API_BASE_URL}/courses/${courseId}/tree`, {
+            const res = await api.get(`/courses/${courseId}/tree`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             return res.data;
@@ -60,5 +60,9 @@ export const useCourseStore = create<CourseState>((set, get) => ({
             console.error('Failed to fetch course details:', err);
             return null;
         }
+    },
+    getCourseById: (courseId) => {
+        const state = get();
+        return state.enrolledCourses.find(course => course.id === courseId);
     }
 }));

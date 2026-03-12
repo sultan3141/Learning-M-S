@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { setLogoutFunction } from '../config/api';
 
 interface User {
     id: string;
@@ -36,3 +37,9 @@ export const useAuthStore = create<AuthState>()(
         }
     )
 );
+
+// Inject the logout function into the centralized API client
+setLogoutFunction(() => {
+    useAuthStore.getState().logout();
+});
+

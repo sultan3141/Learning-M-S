@@ -15,12 +15,12 @@ export const ProfileScreen = () => {
     const { theme } = useThemeStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
 
-    const completedCoursesCount = enrolledCourses.filter(c => c.progress === 100).length;
+    const completedCoursesCount = (enrolledCourses || []).filter(c => c.progress === 100).length;
 
     const handlePersonalInformation = () => {
         Alert.alert(
             "Personal Information",
-            `Name: ${user?.name}\nEmail: ${user?.email}\nPhone: +1 234 567 890`,
+            `Name: ${user?.fullName}\nEmail: ${user?.email}\nPhone: +1 234 567 890`,
             [{ text: "OK" }]
         );
     };
@@ -82,7 +82,7 @@ export const ProfileScreen = () => {
                 <View style={[styles.profileCard, { backgroundColor: COLORS.card }]}>
                     <View style={styles.avatarContainer}>
                         <View style={[styles.avatar, { backgroundColor: COLORS.primaryDark }]}>
-                            <Text style={styles.avatarText}>{user?.name.split(' ').map(n => n[0]).join('')}</Text>
+                            <Text style={styles.avatarText}>{user?.fullName?.split(' ').map(n => n[0]).join('') || 'U'}</Text>
                         </View>
                         <TouchableOpacity
                             style={[styles.editAvatarBtn, { backgroundColor: COLORS.primary, borderColor: COLORS.card }]}
@@ -93,12 +93,12 @@ export const ProfileScreen = () => {
                         </TouchableOpacity>
                     </View>
 
-                    <Text style={[styles.userName, { color: COLORS.text.primary }]}>{user?.name}</Text>
+                    <Text style={[styles.userName, { color: COLORS.text.primary }]}>{user?.fullName}</Text>
                     <Text style={[styles.userEmail, { color: COLORS.text.secondary }]}>{user?.email}</Text>
 
                     <View style={[styles.statsContainer, { borderTopColor: COLORS.border }]}>
                         <View style={styles.statBox}>
-                            <Text style={[styles.statValue, { color: COLORS.text.primary }]}>{enrolledCourses.length}</Text>
+                            <Text style={[styles.statValue, { color: COLORS.text.primary }]}>{(enrolledCourses || []).length}</Text>
                             <Text style={[styles.statLabel, { color: COLORS.text.secondary }]}>Courses</Text>
                         </View>
                         <View style={[styles.statDivider, { backgroundColor: COLORS.border }]} />

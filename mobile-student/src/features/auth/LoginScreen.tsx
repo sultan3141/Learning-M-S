@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
-import axios from 'axios';
-import { useNavigation } from '@react-navigation/native';
+import { api } from '../../config/api';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
 import { Input } from '../../components/ui/Input';
@@ -9,13 +9,14 @@ import { Button } from '../../components/ui/Button';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const API_BASE_URL = 'http://localhost:4000';
-
 export const LoginScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute<any>();
     const { theme } = useThemeStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
     const { login } = useAuthStore();
+
+    const requireTeacher = route.params?.requireTeacher;
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -24,20 +25,36 @@ export const LoginScreen = () => {
     const handleLogin = async () => {
         if (!email || !password) return;
 
+        const sanitizedEmail = email.trim().toLowerCase();
+
         setIsLoading(true);
         try {
-            const res = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
-            const { accessToken, user } = res.data;
+            const res = await api.post('/auth/login', { email: sanitizedEmail, password });
+            const { accessToken, user: backendUser } = res.data;
+
+            if (requireTeacher && backendUser.role !== 'TEACHER') {
+                alert('Access denied. Please log in with a Teacher account to create live rooms.');
+                return;
+            }
+
+            const user = {
+                id: backendUser.id,
+                role: backendUser.role,
+                fullName: backendUser.fullName || sanitizedEmail.split('@')[0],
+                email: sanitizedEmail,
+            };
 
             login(accessToken, user);
 
-            if (user.mustChangePassword) {
-                (navigation as any).navigate('ChangePassword');
+            if (requireTeacher) {
+                (navigation as any).replace('CreateRoom');
             } else {
                 (navigation as any).navigate('MainTabs');
             }
         } catch (err: any) {
-            alert(err.response?.data?.message || 'Login failed');
+            console.error('Login error:', err);
+            const errorMessage = err.response?.data?.message || 'Login failed. Please check your credentials.';
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -58,8 +75,12 @@ export const LoginScreen = () => {
                         <View style={[styles.logoContainer, { backgroundColor: COLORS.primary }]}>
                             <Text style={[styles.logoText, { color: COLORS.text.inverse }]}>EduApp</Text>
                         </View>
-                        <Text style={[styles.title, { color: COLORS.text.primary }]}>Welcome back</Text>
-                        <Text style={[styles.subtitle, { color: COLORS.text.secondary }]}>Sign in to continue your learning journey.</Text>
+                        <Text style={[styles.title, { color: COLORS.text.primary }]}>
+                            {requireTeacher ? 'Teacher Login' : 'Welcome back'}
+                        </Text>
+                        <Text style={[styles.subtitle, { color: COLORS.text.secondary }]}>
+                            {requireTeacher ? 'Sign in as a teacher to create and manage live rooms.' : 'Sign in to continue your learning journey.'}
+                        </Text>
                     </View>
 
                     <View style={styles.form}>
@@ -91,13 +112,6 @@ export const LoginScreen = () => {
                             loading={isLoading}
                             style={styles.loginButton}
                         />
-                    </View>
-
-                    <View style={styles.footer}>
-                        <Text style={[styles.footerText, { color: COLORS.text.secondary }]}>Don't have an account? </Text>
-                        <TouchableOpacity onPress={() => (navigation as any).navigate('Register')}>
-                            <Text style={[styles.footerAction, { color: COLORS.primary }]}>Sign Up</Text>
-                        </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -168,19 +182,5 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         height: 56,
-    },
-    footer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 'auto',
-        paddingTop: SPACING.xxl,
-    },
-    footerText: {
-        fontSize: 14,
-    },
-    footerAction: {
-        fontSize: 14,
-        fontWeight: '600',
     },
 });

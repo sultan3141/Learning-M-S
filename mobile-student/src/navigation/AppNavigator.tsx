@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../features/auth/LoginScreen';
-import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { CourseDetailScreen } from '../features/learning/CourseDetailScreen';
 import { VideoPlayerScreen } from '../features/learning/VideoPlayerScreen';
 import { LiveJoinScreen } from '../features/live/LiveJoinScreen';
@@ -13,11 +12,11 @@ import { GeneralSettingsScreen } from '../features/profile/GeneralSettingsScreen
 import { ChangePasswordScreen } from '../features/auth/ChangePasswordScreen';
 import { COLORS_LIGHT, COLORS_DARK } from '../constants/theme';
 import { useThemeStore } from '../store/useThemeStore';
+import { useAuthStore } from '../store/useAuthStore';
 
 export type RootStackParamList = {
-    Login: undefined;
-    Register: undefined;
     MainTabs: undefined;
+    Login: undefined;
     CourseDetail: { courseId: string };
     VideoPlayer: { lessonId: string; courseId: string };
     LiveJoin: undefined;
@@ -31,25 +30,37 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
     const { theme } = useThemeStore();
+    const { isAuthenticated, user } = useAuthStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
+
+    // Optional: Add a check for hydration if you find it flickers
+    // For now, we'll use isAuthenticated to decide the stack
 
     return (
         <NavigationContainer>
             <Stack.Navigator
-                initialRouteName="Login" // Start on Login for testing
+                initialRouteName="MainTabs"
                 screenOptions={{
                     headerShown: false,
                     contentStyle: { backgroundColor: COLORS.background },
-                    animation: 'fade', // Smoother transition for root stack
+                    animation: 'fade',
                 }}
             >
-                <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="Register" component={RegisterScreen} />
+                {/* Public and Unified Routes */}
                 <Stack.Screen
                     name="MainTabs"
                     component={TabNavigator}
-                    options={{ gestureEnabled: false }} // Prevent swiping back to auth
+                    options={{ gestureEnabled: false }}
                 />
+
+                {/* Auth */}
+                <Stack.Screen
+                    name="Login"
+                    component={LoginScreen}
+                    options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
+                />
+
+                {/* Content */}
                 <Stack.Screen
                     name="CourseDetail"
                     component={CourseDetailScreen}
@@ -67,7 +78,7 @@ export const AppNavigator = () => {
                 <Stack.Screen
                     name="LiveRoom"
                     component={LiveRoomScreen}
-                    options={{ gestureEnabled: false }} // Prevent swiping back accidentally
+                    options={{ gestureEnabled: false }}
                 />
                 <Stack.Screen
                     name="GeneralSettings"

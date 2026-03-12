@@ -1,54 +1,47 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, PlayCircle, Star, Clock, FileText } from 'lucide-react-native';
 import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
 import { Button } from '../../components/ui/Button';
 import { useThemeStore } from '../../store/useThemeStore';
-
-// Mock data
-const COURSE_MODULES = [
-    {
-        id: 'm1',
-        title: 'Module 1: Getting Started',
-        duration: '45 mins',
-        lessons: [
-            { id: 'l1', title: 'Introduction to React Native', type: 'video', duration: '12:00', isLocked: false },
-            { id: 'l2', title: 'Setting up the environment', type: 'video', duration: '18:30', isLocked: false },
-            { id: 'l3', title: 'Cheatsheet: Basic Components', type: 'pdf', duration: '5 MB', isLocked: false },
-        ],
-    },
-    {
-        id: 'm2',
-        title: 'Module 2: Layout & Styling',
-        duration: '1h 20m',
-        lessons: [
-            { id: 'l4', title: 'Understanding Flexbox', type: 'video', duration: '22:15', isLocked: true },
-            { id: 'l5', title: 'Building responsive layouts', type: 'video', duration: '35:00', isLocked: true },
-        ],
-    },
-];
-
+import { useAuthStore } from '../../store/useAuthStore';
 import { useCourseStore } from '../../store/useCourseStore';
 
 export const CourseDetailScreen = ({ route }: any) => {
     const navigation = useNavigation<any>();
     const insets = useSafeAreaInsets();
     const { theme } = useThemeStore();
+    const { isAuthenticated } = useAuthStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
 
     const { courseId } = route.params || { courseId: '1' };
     const storeCourse = useCourseStore((state) => state.getCourseById(courseId));
 
     // Fallback if course not found (e.g. for mock UI testing)
-    const course = storeCourse || {
-        id: '1',
-        title: 'Mobile Development Basics',
-        instructor: 'Dr. Sarah Smith',
-        progress: 65,
+    const course = storeCourse ? {
+        ...storeCourse,
+        instructor: 'Sheikh Abdullah Al-Mansur',
+        category: 'Quranic Sciences',
+        description: 'Deepen your connection with the word of Allah through our comprehensive Tajweed and memorization series. This course covers the fundamental rules of articulation and rhythmic recitation.',
         lessons: [
-            { id: 'l1', title: 'Setting up React Native', duration: '12 min', completed: true, type: 'video' },
+            { id: 'l1', title: 'Introduction to Tajweed Rules', duration: '15 min', completed: true, type: 'video' },
+            { id: 'l2', title: 'The Art of Makharij', duration: '25 min', completed: false, type: 'video' },
+            { id: 'l3', title: 'Rules of Noon and Meem Sakinah', duration: '20 min', completed: false, type: 'video' },
+        ],
+    } : {
+        id: '1',
+        title: 'Mastering Tajweed: Complete Guide',
+        instructor: 'Sheikh Abdullah Al-Mansur',
+        category: 'Quranic Sciences',
+        progress: 35,
+        description: 'Deepen your connection with the word of Allah through our comprehensive Tajweed and memorization series. This course covers the fundamental rules of articulation and rhythmic recitation.',
+        lessons: [
+            { id: 'l1', title: 'Introduction to Tajweed Rules', duration: '15 min', completed: true, type: 'video' },
+            { id: 'l2', title: 'The Art of Makharij', duration: '25 min', completed: false, type: 'video' },
+            { id: 'l3', title: 'Rules of Noon and Meem Sakinah', duration: '20 min', completed: false, type: 'video' },
         ],
     };
 
@@ -63,18 +56,31 @@ export const CourseDetailScreen = ({ route }: any) => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
                 {/* Header / Thumbnail Area */}
                 <View style={styles.heroContainer}>
-                    <View style={[styles.heroImagePlaceholder, { paddingTop: insets.top + SPACING.md, backgroundColor: COLORS.card }]}>
-                        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(255, 255, 255, 0.9)' }]} onPress={() => navigation.goBack()}>
-                            <ArrowLeft color={theme === 'dark' ? '#FFFFFF' : COLORS.text.primary} size={24} />
+                    <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1590076215667-873d3835415f?q=80&w=1200' }}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    <LinearGradient
+                        colors={['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.6)']}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    <View style={[styles.heroOverlay, { paddingTop: insets.top + SPACING.md }]}>
+                        <TouchableOpacity style={[styles.backButton, { backgroundColor: 'rgba(0,0,0,0.5)' }]} onPress={() => navigation.goBack()}>
+                            <ArrowLeft color="#FFFFFF" size={24} />
                         </TouchableOpacity>
-                        <PlayCircle size={64} color={COLORS.primary} style={styles.heroPlayIcon} />
+                        <TouchableOpacity onPress={() => {
+                            if (!isAuthenticated) return navigation.navigate('Login');
+                            navigation.navigate('VideoPlayer', { lessonId: course.lessons[0].id, courseId: course.id });
+                        }} style={styles.heroPlayIconWrapper}>
+                            <PlayCircle size={72} color="#FFFFFF" fill="rgba(255,255,255,0.2)" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
                 {/* Course Info */}
                 <View style={[styles.infoSection, { backgroundColor: COLORS.card, borderBottomColor: COLORS.border }]}>
                     <View style={styles.tagRow}>
-                        <Text style={[styles.tag, { color: COLORS.primary, backgroundColor: COLORS.secondaryGhost }]}>Development</Text>
+                        <Text style={[styles.tag, { color: COLORS.primary, backgroundColor: COLORS.secondaryGhost }]}>{course.category}</Text>
                         <View style={styles.ratingBadge}>
                             <Star size={12} color="#F59E0B" fill="#F59E0B" />
                             <Text style={styles.ratingText}>4.8</Text>
@@ -97,8 +103,7 @@ export const CourseDetailScreen = ({ route }: any) => {
                     </View>
 
                     <Text style={[styles.description, { color: COLORS.text.secondary }]}>
-                        Master React Native UI. Learn how Flexbox works on mobile and build complex,
-                        responsive layouts that look great on both iOS and Android devices.
+                        {course.description}
                     </Text>
                 </View>
 
@@ -116,6 +121,10 @@ export const CourseDetailScreen = ({ route }: any) => {
                                 ]}
                                 activeOpacity={0.7}
                                 onPress={() => {
+                                    if (!isAuthenticated) {
+                                        navigation.navigate('Login');
+                                        return;
+                                    }
                                     navigation.navigate('VideoPlayer', { lessonId: lesson.id, courseId: course.id });
                                 }}
                             >
@@ -144,12 +153,18 @@ export const CourseDetailScreen = ({ route }: any) => {
             {/* Sticky Bottom Bar */}
             <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, SPACING.md), backgroundColor: COLORS.card, borderTopColor: COLORS.border }]}>
                 <View style={styles.priceContainer}>
-                    <Text style={[styles.priceLabel, { color: COLORS.text.muted }]}>Total Price</Text>
-                    <Text style={[styles.price, { color: COLORS.text.primary }]}>$49.00</Text>
+                    <Text style={[styles.priceLabel, { color: COLORS.text.muted }]}>Subscription Access</Text>
+                    <Text style={[styles.price, { color: COLORS.text.primary }]}>Premium Plan</Text>
                 </View>
                 <Button
                     title="Enroll Now"
-                    onPress={() => { }}
+                    onPress={() => {
+                        if (!isAuthenticated) {
+                            navigation.navigate('Login');
+                            return;
+                        }
+                        // Continue enrollment logic...
+                    }}
                     style={styles.enrollBtn}
                 />
             </View>
@@ -165,10 +180,11 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 280,
     },
-    heroImagePlaceholder: {
+    heroOverlay: {
         flex: 1,
         paddingHorizontal: SPACING.xl,
-        position: 'relative',
+        justifyContent: 'space-between',
+        paddingBottom: SPACING.xl,
     },
     backButton: {
         width: 40,
@@ -176,16 +192,15 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        ...Platform.select({
-            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-            android: { elevation: 3 },
-        }),
     },
-    heroPlayIcon: {
+    heroPlayIconWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
         position: 'absolute',
         top: '50%',
         left: '50%',
-        transform: [{ translateX: -32 }, { translateY: -32 }],
+        marginTop: -36,
+        marginLeft: -36,
     },
     infoSection: {
         padding: SPACING.xl,

@@ -8,8 +8,9 @@ import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../constants/theme';
 import { useThemeStore } from '../store/useThemeStore';
 
 import { DiscoverScreen } from '../features/discover/DiscoverScreen';
-
 import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { LearningScreen } from '../features/learning/LearningScreen';
+import { useAuthStore } from '../store/useAuthStore';
 
 // Placeholder components for other tabs
 const PlaceholderScreen = ({ name }: { name: string }) => {
@@ -30,11 +31,19 @@ const Tab = createBottomTabNavigator();
 export const TabNavigator = () => {
     const insets = useSafeAreaInsets();
     const { theme } = useThemeStore();
+    const { isAuthenticated, user } = useAuthStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
 
     // Bottom tab padding needs to accommodate both iOS Home Indicator and Android Navbar
     const bottomPadding = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 16 : 12);
     const tabHeight = 60 + bottomPadding;
+
+    const requireAuth = (e: any, navigation: any) => {
+        if (!isAuthenticated) {
+            e.preventDefault();
+            navigation.navigate('Login');
+        }
+    };
 
     return (
         <Tab.Navigator
@@ -94,18 +103,25 @@ export const TabNavigator = () => {
                 listeners={({ navigation }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
+                        if (!isAuthenticated || user?.role !== 'TEACHER') {
+                            navigation.navigate('Login' as any, { requireTeacher: true });
+                            return;
+                        }
                         navigation.navigate('CreateRoom' as any);
                     },
                 })}
             />
             <Tab.Screen
                 name="Learning"
-                component={ProgressScreen}
+                component={LearningScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <BookOpen color={color} size={size} />
                     ),
                 }}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => requireAuth(e, navigation)
+                })}
             />
             <Tab.Screen
                 name="Profile"
@@ -115,6 +131,9 @@ export const TabNavigator = () => {
                         <User color={color} size={size} />
                     ),
                 }}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => requireAuth(e, navigation)
+                })}
             />
         </Tab.Navigator>
     );

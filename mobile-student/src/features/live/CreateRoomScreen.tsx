@@ -1,90 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Alert, Modal, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Plus, Lock, User as UserIcon, BookOpen, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Plus, Lock, User as UserIcon } from 'lucide-react-native';
 import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:4000';
+import { api } from '../../config/api';
 
 export const CreateRoomScreen = () => {
     const navigation = useNavigation<any>();
     const { theme } = useThemeStore();
-    const { token, login, isAuthenticated, user } = useAuthStore();
+    const { login, user, token } = useAuthStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-    const [courses, setCourses] = useState<any[]>([]);
-    const [selectedCourse, setSelectedCourse] = useState<any>(null);
     const [isCreating, setIsCreating] = useState(false);
-    const [isCourseModalVisible, setIsCourseModalVisible] = useState(false);
+    const [topic, setTopic] = useState('');
+    const [subtopic, setSubtopic] = useState('');
 
-    useEffect(() => {
-        if (isAuthenticated && user?.role === 'TEACHER') {
-            fetchTeacherCourses();
-        }
-    }, [isAuthenticated, user]);
-
-    const fetchTeacherCourses = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/courses/teacher/me`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setCourses(response.data);
-        } catch (err) {
-            console.error('Failed to fetch courses:', err);
-        }
-    };
+    // Check if current user is a teacher
+    const isTeacher = user?.role === 'TEACHER';
+    const hasTeacherAccess = isTeacher && token;
 
     const handleAuth = async () => {
-        if (!email || !password) return;
+        if (!email || !password) {
+            Alert.alert('Missing Fields', 'Please enter email and password');
+            return;
+        }
 
         setIsAuthenticating(true);
         try {
-            const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+            const response = await api.post('/auth/login', {
                 email,
                 password,
             });
 
-            // In a real app, you'd decode the JWT to get role. For now, we assume if login works...
-            // But let's check if the user is a teacher (we'd need another endpoint or decoded token)
-            // Mocking for now: if email contains teacher, it's a teacher
-            login(response.data.accessToken, {
-                id: 'teacher-id',
-                name: 'Teacher Name',
-                email,
-                role: 'TEACHER'
+            const { accessToken, user: backendUser } = response.data;
+
+            // Check if user is a teacher
+            if (backendUser.role !== 'TEACHER') {
+                Alert.alert('Access Denied', 'Only teachers can create live rooms.');
+                return;
+            }
+
+            // Store teacher token in store so interceptor picks it up
+            login(accessToken, {
+                id: backendUser.id,
+                role: backendUser.role,
+                fullName: backendUser.fullName || email.split('@')[0],
+                email: email,
             });
+
+            Alert.alert('Success', 'Logged in as teacher!');
         } catch (err: any) {
-            Alert.alert('Login Failed', err.response?.data?.message || 'Invalid credentials');
+            console.error('Login error:', err);
+            Alert.alert('Login Failed', err.response?.data?.message || 'Invalid credentials. Please check your email and password.');
         } finally {
             setIsAuthenticating(false);
         }
     };
 
     const handleCreate = async () => {
-        if (!selectedCourse) return;
+        if (!topic.trim()) {
+            Alert.alert('Missing Topic', 'Please enter a topic for your live class');
+            return;
+        }
+
         setIsCreating(true);
         try {
-            const response = await axios.post(`${API_BASE_URL}/live-sessions`, {
-                courseId: selectedCourse.id,
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.post(
+                '/live-sessions',
+                {
+                    topic,
+                    subtopic
+                }
+            );
 
-            Alert.alert('Success', `Room created! Room Code: ${response.data.roomCode}`, [
-                { text: 'GO TO ROOM', onPress: () => navigation.navigate('LiveRoom', { roomId: response.data.roomCode }) }
-            ]);
+            // Navigate directly to the live room
+            navigation.navigate('LiveRoom', { roomId: response.data.roomCode });
         } catch (err: any) {
-            Alert.alert('Creation Failed', err.response?.data?.message || 'Error creating room');
+            console.error('Create room error:', err);
+            Alert.alert('Creation Failed', err.response?.data?.message || 'Failed to create room');
         } finally {
             setIsCreating(false);
         }
@@ -104,7 +106,7 @@ export const CreateRoomScreen = () => {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
                 <ScrollView contentContainerStyle={styles.content}>
-                    {!isAuthenticated || user?.role !== 'TEACHER' ? (
+                    {!hasTeacherAccess ? (
                         <View style={styles.section}>
                             <View style={[styles.iconContainer, { backgroundColor: COLORS.secondaryGhost }]}>
                                 <Lock size={40} color={COLORS.primary} />
@@ -116,9 +118,11 @@ export const CreateRoomScreen = () => {
 
                             <Input
                                 label="Email"
-                                placeholder="teacher@school.com"
+                                placeholder="teacher@test.com"
                                 value={email}
                                 onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
                                 leftIcon={<UserIcon size={20} color={COLORS.text.muted} />}
                             />
                             <Input
@@ -131,11 +135,15 @@ export const CreateRoomScreen = () => {
                             />
 
                             <Button
-                                title="Authenticate"
+                                title="Login as Teacher"
                                 onPress={handleAuth}
                                 loading={isAuthenticating}
                                 style={styles.actionButton}
                             />
+
+                            <Text style={[styles.hint, { color: COLORS.text.muted }]}>
+                                Only registered teacher accounts can create rooms.
+                            </Text>
                         </View>
                     ) : (
                         <View style={styles.section}>
@@ -144,71 +152,35 @@ export const CreateRoomScreen = () => {
                             </View>
                             <Text style={[styles.title, { color: COLORS.text.primary }]}>Start Live Class</Text>
                             <Text style={[styles.subtitle, { color: COLORS.text.secondary }]}>
-                                Select a course to create a live room for your students.
+                                Enter the topic and subtopic to start your live session for students.
                             </Text>
 
-                            <TouchableOpacity
-                                style={[styles.selector, { borderColor: COLORS.border, backgroundColor: theme === 'dark' ? COLORS.secondaryGhost : '#fff' }]}
-                                onPress={() => setIsCourseModalVisible(true)}
-                            >
-                                <View style={styles.selectorLeft}>
-                                    <BookOpen size={20} color={COLORS.primary} />
-                                    <Text style={[styles.selectorText, { color: selectedCourse ? COLORS.text.primary : COLORS.text.muted }]}>
-                                        {selectedCourse ? selectedCourse.title : 'Select Course'}
-                                    </Text>
-                                </View>
-                                <ChevronRight size={20} color={COLORS.text.muted} />
-                            </TouchableOpacity>
+                            <Input
+                                label="Topic"
+                                placeholder="e.g. Introduction to Physics"
+                                value={topic}
+                                onChangeText={setTopic}
+                                style={{ marginTop: SPACING.md }}
+                            />
+
+                            <Input
+                                label="Subtopic"
+                                placeholder="e.g. Newton's Laws"
+                                value={subtopic}
+                                onChangeText={setSubtopic}
+                                style={{ marginTop: SPACING.xs }}
+                            />
 
                             <Button
                                 title="Create Live Room"
                                 onPress={handleCreate}
                                 loading={isCreating}
-                                disabled={!selectedCourse}
                                 style={[styles.actionButton, { backgroundColor: COLORS.primary }] as any}
                             />
                         </View>
                     )}
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Course Selection Modal */}
-            <Modal
-                visible={isCourseModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsCourseModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { backgroundColor: COLORS.background }]}>
-                        <View style={styles.modalHeader}>
-                            <Text style={[styles.modalTitle, { color: COLORS.text.primary }]}>Your Courses</Text>
-                            <TouchableOpacity onPress={() => setIsCourseModalVisible(false)}>
-                                <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Cancel</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <FlatList
-                            data={courses}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.courseItem}
-                                    onPress={() => {
-                                        setSelectedCourse(item);
-                                        setIsCourseModalVisible(false);
-                                    }}
-                                >
-                                    <Text style={[styles.courseTitle, { color: COLORS.text.primary }]}>{item.title}</Text>
-                                    <ChevronRight size={18} color={COLORS.text.muted} />
-                                </TouchableOpacity>
-                            )}
-                            ListEmptyComponent={
-                                <Text style={[styles.emptyText, { color: COLORS.text.muted }]}>No courses found.</Text>
-                            }
-                        />
-                    </View>
-                </View>
-            </Modal>
         </SafeAreaView>
     );
 };
@@ -234,22 +206,5 @@ const styles = StyleSheet.create({
     title: { fontSize: 24, fontWeight: '700', textAlign: 'center', marginBottom: SPACING.sm },
     subtitle: { fontSize: 15, textAlign: 'center', marginBottom: SPACING.xxl, paddingHorizontal: SPACING.lg, lineHeight: 22 },
     actionButton: { marginTop: SPACING.xl, height: 56 },
-    selector: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        marginTop: 8
-    },
-    selectorLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    selectorText: { fontSize: 16, fontWeight: '500' },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '700' },
-    courseItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-    courseTitle: { fontSize: 16, fontWeight: '600' },
-    emptyText: { textAlign: 'center', marginTop: 40, fontSize: 15 }
+    hint: { fontSize: 13, textAlign: 'center', marginTop: SPACING.md, fontStyle: 'italic' }
 });

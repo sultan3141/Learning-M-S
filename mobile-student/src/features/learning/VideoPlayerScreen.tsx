@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Play, Pause, Maximize, Minimize, ArrowLeft, SkipBack, SkipForward } from 'lucide-react-native';
@@ -20,9 +20,9 @@ export const VideoPlayerScreen = () => {
 
     const { lessonId, courseId } = (route.params as any) || { lessonId: 'l4', courseId: '1' };
 
-    const markLessonComplete = useCourseStore((state) => state.markLessonComplete);
+    const markLessonComplete = useCourseStore((state: any) => state.markLessonComplete);
     const course = useCourseStore((state) => state.getCourseById(courseId));
-    const lesson = course?.lessons.find(l => l.id === lessonId);
+    const lesson = (course as any)?.lessons?.find((l: any) => l.id === lessonId);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -44,8 +44,13 @@ export const VideoPlayerScreen = () => {
                     style={styles.videoSurface}
                     onPress={handleVideoTap}
                 >
-                    <Text style={[styles.videoMockText, { color: '#FFFFFF' }]}>Video Render Area</Text>
-                    <Text style={[styles.videoMockSubtext, { color: 'rgba(255,255,255,0.6)' }]}>Lesson ID: {lessonId}</Text>
+                    <Image
+                        source={{ uri: 'https://images.unsplash.com/photo-1590076215667-873d3835415f?q=80&w=1200' }}
+                        style={StyleSheet.absoluteFillObject}
+                    />
+                    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.3)' }]} />
+                    <Text style={[styles.videoMockText, { color: '#FFFFFF' }]}>Tajweed Mastery: Lesson {lessonId}</Text>
+                    <Text style={[styles.videoMockSubtext, { color: 'rgba(255,255,255,0.8)' }]}>Quranic Sciences • {lesson?.title || 'Current Lesson'}</Text>
                 </TouchableOpacity>
 
                 {/* Overlay Controls */}
@@ -107,7 +112,7 @@ export const VideoPlayerScreen = () => {
                 <View style={[styles.detailsSection, { backgroundColor: COLORS.card, flex: 1 }]}>
                     <Text style={[styles.lessonTitle, { color: COLORS.text.primary }]}>{lesson?.title || 'Lesson'}</Text>
                     <Text style={[styles.lessonDesc, { color: COLORS.text.secondary }]}>
-                        In this lesson, we cover the basics of React Native layouts, explaining how Flexbox maps to iOS and Android under the hood.
+                        {lesson?.title || 'Lesson Description'}: In this session, we explore the intricate details of Quranic articulation and the spiritual discipline of Tajweed.
                     </Text>
 
                     {!lesson?.completed && (
@@ -115,7 +120,7 @@ export const VideoPlayerScreen = () => {
                             title="Complete Lesson"
                             style={{ marginTop: SPACING.xl }}
                             onPress={() => {
-                                markLessonComplete(courseId, lessonId);
+                                (markLessonComplete as any)(courseId, lessonId);
                                 navigation.goBack();
                             }}
                         />

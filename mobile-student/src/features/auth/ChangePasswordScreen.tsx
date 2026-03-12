@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import axios from 'axios';
+import { api } from '../../config/api';
 import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
-
-const API_BASE_URL = 'http://localhost:4000';
 
 export const ChangePasswordScreen = () => {
     const navigation = useNavigation();
@@ -31,10 +29,7 @@ export const ChangePasswordScreen = () => {
 
         setIsLoading(true);
         try {
-            await axios.patch(`${API_BASE_URL}/auth/change-password`,
-                { newPassword },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await api.patch('/auth/change-password', { newPassword });
 
             Alert.alert(
                 'Success',

@@ -1,329 +1,422 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity, ViewStyle } from 'react-native';
+import {
+    ScrollView, StyleSheet, View, Text, TouchableOpacity,
+    Image, Dimensions, FlatList, TextInput, ViewStyle
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Search, PlayCircle } from 'lucide-react-native';
-import { COLORS_LIGHT, COLORS_DARK, SPACING } from '../../constants/theme';
-import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import { Search, Play, Heart, Share2, Clock, Eye, MoonStar, BookOpen, GraduationCap, Users, TrendingUp, Filter } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS_LIGHT, COLORS_DARK, SPACING, TYPOGRAPHY, SHADOWS } from '../../constants/theme';
 import { useThemeStore } from '../../store/useThemeStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:4000';
-const CATEGORIES = ['All', 'Development', 'Design', 'Business', 'Marketing'];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const TOP_CATEGORIES = ['All', 'Quran', 'Hadith', 'Seerah', 'Fiqh', 'History', 'Family'];
+
+const FEATURED_VIDEO = {
+    id: 'f1',
+    title: 'Modern Tajweed: Mastery Series',
+    author: 'Sheikh Ahmed Al-Azhar',
+    duration: '1h 24m',
+    views: '12K',
+    thumbnail: 'https://images.unsplash.com/photo-1609510107053-fd303494ee60?q=80&w=800&auto=format&fit=crop',
+    category: 'Quran'
+};
+
+const DISCOVER_VIDEOS = [
+    {
+        id: 'v1',
+        title: 'The Prophetic Character in Daily Life',
+        author: 'Dr. Hussain Ali',
+        duration: '45:30',
+        views: '8.4K',
+        thumbnail: 'https://images.unsplash.com/photo-1542810634-7bc2043d308b?q=80&w=600&auto=format&fit=crop',
+        category: 'Seerah'
+    },
+    {
+        id: 'v2',
+        title: 'Fiqh of Prayer: Concise Guide',
+        author: 'Imam Yasin',
+        duration: '1:12:00',
+        views: '15K',
+        thumbnail: 'https://images.unsplash.com/photo-1591608971362-f08b2a75731a?q=80&w=600&auto=format&fit=crop',
+        category: 'Fiqh'
+    },
+    {
+        id: 'v3',
+        title: 'Stories of the Companions',
+        author: 'Sheikh Omar',
+        duration: '38:15',
+        views: '22K',
+        thumbnail: 'https://images.unsplash.com/photo-1563229281-22878ce458a6?q=80&w=600&auto=format&fit=crop',
+        category: 'History'
+    },
+    {
+        id: 'v4',
+        title: 'Parenting in the Islamic Way',
+        author: 'Ustadha Maryam',
+        duration: '52:10',
+        views: '5.6K',
+        thumbnail: 'https://images.unsplash.com/photo-1491438590914-bc09fca97c21?q=80&w=600&auto=format&fit=crop',
+        category: 'Family'
+    }
+];
 
 export const DiscoverScreen = () => {
     const navigation = useNavigation<any>();
-    const [activeCategory, setActiveCategory] = useState('All');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [liveSessions, setLiveSessions] = useState<any[]>([]);
     const { theme } = useThemeStore();
-    const { token, isAuthenticated } = useAuthStore();
     const COLORS = theme === 'dark' ? COLORS_DARK : COLORS_LIGHT;
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchLiveSessions();
-        }
-    }, [isAuthenticated]);
+    const [activeCategory, setActiveCategory] = useState('All');
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchLiveSessions = async () => {
-        try {
-            const response = await axios.get(`${API_BASE_URL}/live-sessions`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setLiveSessions(response.data);
-        } catch (err) {
-            console.error('Failed to fetch live sessions:', err);
-        }
-    };
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <Text style={[styles.headerTitle, { color: COLORS.text.primary }]}>Explore Wisdom</Text>
+            <View style={styles.headerRow}>
+                <View style={[styles.searchBar, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+                    <Search color={COLORS.text.muted} size={18} />
+                    <TextInput
+                        placeholder="Search videos, series..."
+                        placeholderTextColor={COLORS.text.muted}
+                        style={[styles.searchInput, { color: COLORS.text.primary }]}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
+                <TouchableOpacity style={[styles.filterBtn, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}>
+                    <Filter color={COLORS.primary} size={20} />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    const renderFeatured = () => (
+        <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+                <TrendingUp color={COLORS.primary} size={20} />
+                <Text style={[styles.sectionTitle, { color: COLORS.text.primary }]}>Live Spotlight</Text>
+            </View>
+            <TouchableOpacity
+                activeOpacity={0.9}
+                style={[styles.featuredCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+                onPress={() => navigation.navigate('LiveJoin')}
+            >
+                <Image source={{ uri: FEATURED_VIDEO.thumbnail }} style={styles.featuredThumbnail} />
+                <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.8)']}
+                    style={styles.featuredGradient}
+                >
+                    <View style={styles.featuredContent}>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>Live Premiere</Text>
+                        </View>
+                        <Text style={styles.featuredTitle}>{FEATURED_VIDEO.title}</Text>
+                        <View style={styles.featuredMeta}>
+                            <Clock color="white" size={14} />
+                            <Text style={styles.featuredMetaText}>{FEATURED_VIDEO.duration}</Text>
+                            <Eye color="white" size={14} style={{ marginLeft: 10 }} />
+                            <Text style={styles.featuredMetaText}>{FEATURED_VIDEO.views}</Text>
+                        </View>
+                    </View>
+                </LinearGradient>
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderCategories = () => (
+        <View style={styles.categoriesContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
+                {TOP_CATEGORIES.map(cat => {
+                    const isActive = activeCategory === cat;
+                    return (
+                        <TouchableOpacity
+                            key={cat}
+                            style={[
+                                styles.pill,
+                                {
+                                    backgroundColor: isActive ? COLORS.primary : COLORS.card,
+                                    borderColor: isActive ? COLORS.primary : COLORS.border
+                                }
+                            ]}
+                            onPress={() => setActiveCategory(cat)}
+                        >
+                            <Text style={[styles.pillText, { color: isActive ? 'white' : COLORS.text.secondary }]}>{cat}</Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </ScrollView>
+        </View>
+    );
+
+    const renderVideoCard = (video: any) => (
+        <TouchableOpacity
+            key={video.id}
+            activeOpacity={0.7}
+            style={[styles.videoCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
+        >
+            <View style={styles.thumbnailContainer}>
+                <Image source={{ uri: video.thumbnail }} style={styles.videoThumbnail} />
+                <View style={styles.durationBadge}>
+                    <Text style={styles.durationText}>{video.duration}</Text>
+                </View>
+            </View>
+            <View style={styles.videoInfo}>
+                <Text style={[styles.videoTitle, { color: COLORS.text.primary }]} numberOfLines={2}>{video.title}</Text>
+                <Text style={[styles.videoAuthor, { color: COLORS.text.secondary }]}>{video.author}</Text>
+                <View style={styles.videoStats}>
+                    <Text style={[styles.videoMeta, { color: COLORS.text.muted }]}>{video.views} views</Text>
+                    <View style={styles.dot} />
+                    <Text style={[styles.videoMeta, { color: COLORS.primary }]}>{video.category}</Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.background }]} edges={['top']}>
-            <View style={styles.header}>
-                <Text style={[styles.headerTitle, { color: COLORS.text.primary }]}>Discover</Text>
-                <Text style={[styles.headerSubtitle, { color: COLORS.text.secondary }]}>Find your next course</Text>
-            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+                {renderHeader()}
+                {renderCategories()}
+                {renderFeatured()}
 
-            <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                    <Search color={COLORS.text.muted} size={20} style={styles.searchIcon} />
-                    <Input
-                        label=""
-                        placeholder="Search courses, mentors..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        style={styles.searchInputWrapper}
-                        returnKeyType="search"
-                    />
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitleMain, { color: COLORS.text.primary }]}>Recommended Lessons</Text>
+                    <View style={styles.videoGrid}>
+                        {DISCOVER_VIDEOS.map(v => renderVideoCard(v))}
+                    </View>
                 </View>
-            </View>
 
-            <View style={styles.categoriesContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-                    {CATEGORIES.map((category) => {
-                        const isActive = activeCategory === category;
-                        return (
-                            <TouchableOpacity
-                                key={category}
-                                style={[
-                                    styles.categoryPill,
-                                    {
-                                        backgroundColor: isActive ? COLORS.primary : COLORS.card,
-                                        borderColor: isActive ? COLORS.primary : COLORS.border
-                                    }
-                                ]}
-                                onPress={() => setActiveCategory(category)}
-                                activeOpacity={0.8}
-                            >
-                                <Text
-                                    style={[
-                                        styles.categoryText,
-                                        { color: isActive ? COLORS.text.inverse : COLORS.text.secondary }
-                                    ]}
-                                >
-                                    {category}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            </View>
-
-            <ScrollView
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Live Sessions Section */}
-                {liveSessions.length > 0 && (
-                    <View style={styles.liveSection}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.resultsTitle, { color: COLORS.text.primary }]}>Live Classes</Text>
-                            <View style={styles.liveBadge}>
-                                <View style={styles.liveDot} />
-                                <Text style={styles.liveText}>LIVE</Text>
-                            </View>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.liveScroll}>
-                            {liveSessions.map(session => (
-                                <TouchableOpacity
-                                    key={session.id}
-                                    style={[styles.liveCard, { backgroundColor: COLORS.card, borderColor: COLORS.border }]}
-                                    onPress={() => navigation.navigate('LiveRoom', { roomId: session.roomCode })}
-                                >
-                                    <View style={styles.liveCardHeader}>
-                                        <PlayCircle color={COLORS.primary} size={24} />
-                                        <Text style={[styles.roomCode, { color: COLORS.text.muted }]}>#{session.roomCode}</Text>
-                                    </View>
-                                    <View style={styles.liveCardInfo}>
-                                        <Text style={[styles.liveTitle, { color: COLORS.text.primary }]} numberOfLines={1}>{session.course.title}</Text>
-                                        <Text style={[styles.liveTeacher, { color: COLORS.text.secondary }]}>{session.teacher?.fullName || 'Teacher'}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
-                    </View>
-                )}
-
-                <Text style={[styles.resultsTitle, { color: COLORS.text.primary }]}>Featured Courses</Text>
-
-                {/* Dummy Data for UI layout purposes */}
-                <Card variant="list" style={{ ...styles.courseCard, backgroundColor: COLORS.card, borderColor: COLORS.border } as ViewStyle} onPress={() => (navigation as any).navigate('CourseDetail', { courseId: '1' })}>
-                    <View style={[styles.thumbnailPlaceholder, { backgroundColor: theme === 'dark' ? COLORS.primaryLight : COLORS.primary }]}>
-                        <Text style={[styles.thumbnailText, { color: theme === 'dark' ? COLORS.primary : '#FFFFFF' }]}>RN</Text>
-                    </View>
-                    <View style={styles.courseInfo}>
-                        <Text style={[styles.courseTitle, { color: COLORS.text.primary }]} numberOfLines={2}>Advanced React Native Animations</Text>
-                        <Text style={[styles.courseTeacher, { color: COLORS.text.secondary }]}>by Sarah Jenkins</Text>
-                        <View style={styles.courseMetaSection}>
-                            <Text style={[styles.courseMeta, { color: COLORS.text.muted }]}>4.8 ★  •  24 Lessons</Text>
-                            <Text style={[styles.coursePrice, { color: COLORS.primary }]}>$49</Text>
-                        </View>
-                    </View>
-                </Card>
-
-                <Card variant="list" style={{ ...styles.courseCard, backgroundColor: COLORS.card, borderColor: COLORS.border } as ViewStyle} onPress={() => (navigation as any).navigate('CourseDetail', { courseId: '1' })}>
-                    <View style={[styles.thumbnailPlaceholder, { backgroundColor: theme === 'dark' ? COLORS.primaryLight : COLORS.primary }]}>
-                        <Text style={[styles.thumbnailText, { color: theme === 'dark' ? COLORS.primary : '#FFFFFF' }]}>TS</Text>
-                    </View>
-                    <View style={styles.courseInfo}>
-                        <Text style={[styles.courseTitle, { color: COLORS.text.primary }]} numberOfLines={2}>Mastering TypeScript 5.0</Text>
-                        <Text style={[styles.courseTeacher, { color: COLORS.text.secondary }]}>by John Doe</Text>
-                        <View style={styles.courseMetaSection}>
-                            <Text style={[styles.courseMeta, { color: COLORS.text.muted }]}>4.9 ★  •  18 Lessons</Text>
-                            <Text style={[styles.coursePrice, { color: COLORS.primary }]}>$39</Text>
-                        </View>
-                    </View>
-                </Card>
-
+                <View style={{ height: 100 }} />
             </ScrollView>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-    },
+    safeArea: { flex: 1 },
     header: {
-        paddingHorizontal: SPACING.xl,
-        paddingTop: SPACING.lg,
-        paddingBottom: SPACING.md,
+        paddingHorizontal: SPACING.lg,
+        paddingTop: SPACING.md,
+        paddingBottom: SPACING.xl,
     },
     headerTitle: {
         fontSize: 28,
-        fontWeight: '700',
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        marginTop: 4,
-    },
-    searchContainer: {
-        paddingHorizontal: SPACING.xl,
+        fontWeight: '800',
         marginBottom: SPACING.lg,
     },
-    searchBar: {
-        position: 'relative',
-    },
-    searchIcon: {
-        position: 'absolute',
-        left: SPACING.lg,
-        top: 15,
-        zIndex: 1,
-    },
-    searchInputWrapper: {
-        paddingLeft: 40,
-        height: 50,
-    },
-    categoriesContainer: {
-        marginBottom: SPACING.lg,
-    },
-    categoriesScroll: {
-        paddingHorizontal: SPACING.xl,
+    headerRow: {
+        flexDirection: 'row',
         gap: SPACING.sm,
     },
-    categoryPill: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 999,
+    searchBar: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 50,
+        borderRadius: 12,
+        borderWidth: 1,
+        paddingHorizontal: 15,
+    },
+    searchInput: {
+        flex: 1,
+        marginLeft: 10,
+        fontSize: 15,
+    },
+    filterBtn: {
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        borderWidth: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    categoriesContainer: {
+        marginBottom: SPACING.xl,
+    },
+    categoriesScroll: {
+        paddingHorizontal: SPACING.lg,
+        gap: SPACING.sm,
+    },
+    pill: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 25,
         borderWidth: 1,
     },
-    categoryText: {
+    pillText: {
         fontSize: 14,
-        fontWeight: '500',
-    },
-    content: {
-        paddingHorizontal: SPACING.xl,
-        paddingBottom: 120, // Tab bar padding
-        gap: SPACING.md,
-    },
-    resultsTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        marginBottom: SPACING.sm,
-    },
-    courseCard: {
-        alignItems: 'flex-start',
-        gap: SPACING.md,
-    },
-    thumbnailPlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    thumbnailText: {
-        color: '#FFFFFF',
-        fontWeight: '700',
-        fontSize: 20,
-    },
-    courseInfo: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    courseTitle: {
-        fontSize: 15,
         fontWeight: '600',
-        marginBottom: 4,
     },
-    courseTeacher: {
-        fontSize: 13,
-        marginBottom: SPACING.md,
-    },
-    courseMetaSection: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    courseMeta: {
-        fontSize: 12,
-    },
-    coursePrice: {
-        fontSize: 15,
-        fontWeight: '700',
-    },
-    // Live Section Styles
-    liveSection: {
-        marginBottom: SPACING.lg,
+    section: {
+        marginBottom: SPACING.xl,
     },
     sectionHeader: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: SPACING.sm,
+        gap: 8,
+        paddingHorizontal: SPACING.lg,
+        marginBottom: SPACING.md,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    sectionTitleMain: {
+        fontSize: 20,
+        fontWeight: '800',
+        paddingHorizontal: SPACING.lg,
+        marginBottom: SPACING.lg,
+    },
+    featuredCard: {
+        marginHorizontal: SPACING.lg,
+        borderRadius: 20,
+        overflow: 'hidden',
+        ...SHADOWS.md,
+        height: 200,
+    },
+    featuredThumbnail: {
+        width: '100%',
+        height: '100%',
+    },
+    featuredGradient: {
+        ...StyleSheet.absoluteFillObject,
+        padding: SPACING.lg,
+        justifyContent: 'flex-end',
+    },
+    featuredContent: {
+        gap: 8,
+    },
+    badge: {
+        backgroundColor: 'rgba(79, 70, 229, 0.9)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        alignSelf: 'flex-start',
+    },
+    badgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        textTransform: 'uppercase',
+    },
+    featuredTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
+    featuredMeta: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    featuredMetaText: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '600',
+    },
+    featuredInfo: {
+        padding: SPACING.lg,
     },
     liveBadge: {
         flexDirection: 'row',
         alignItems: 'center',
+        backgroundColor: '#4F46E515',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 4,
-        backgroundColor: '#FEE2E2',
+        alignSelf: 'flex-start',
+        marginBottom: 8,
     },
     liveDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#EF4444',
+        backgroundColor: '#4F46E5',
         marginRight: 6,
     },
-    liveText: {
+    liveLabel: {
         fontSize: 10,
-        fontWeight: '700',
-        color: '#EF4444',
+        fontWeight: '800',
+        color: '#4F46E5',
     },
-    liveScroll: {
-        paddingVertical: 4,
-        gap: SPACING.md,
+    videoTitleLarge: {
+        fontSize: 20,
+        fontWeight: '800',
+        marginBottom: 4,
     },
-    liveCard: {
-        width: 180,
-        padding: SPACING.md,
+    videoAuthor: {
+        fontSize: 14,
+    },
+    videoGrid: {
+        paddingHorizontal: SPACING.lg,
+        gap: SPACING.lg,
+    },
+    videoCard: {
         borderRadius: 16,
         borderWidth: 1,
-        marginRight: SPACING.md,
-    },
-    liveCardHeader: {
+        overflow: 'hidden',
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
+        padding: 10,
+        gap: 12,
     },
-    roomCode: {
-        fontSize: 12,
-        fontWeight: '600',
+    thumbnailContainer: {
+        width: 120,
+        height: 80,
+        borderRadius: 10,
+        overflow: 'hidden',
+        position: 'relative',
     },
-    liveCardInfo: {
-        marginTop: 4,
+    videoThumbnail: {
+        width: '100%',
+        height: '100%',
     },
-    liveTitle: {
-        fontSize: 14,
+    durationBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    durationText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    videoInfo: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    videoTitle: {
+        fontSize: 15,
         fontWeight: '700',
+        marginBottom: 4,
     },
-    liveTeacher: {
+    videoAuthorSmall: {
         fontSize: 12,
-        marginTop: 2,
+        marginBottom: 4,
     },
+    videoStats: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    metaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    metaText: {
+        fontSize: 11,
+    },
+    dot: {
+        width: 3,
+        height: 3,
+        borderRadius: 1.5,
+        backgroundColor: '#94A3B8',
+    }
 });
